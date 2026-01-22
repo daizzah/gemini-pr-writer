@@ -1,0 +1,15 @@
+name: "AI PR Writer"
+description: "Automatically writes a Pull Request description using Google Gemini."
+author: "YourName"
+
+inputs:
+  gemini_api_key:
+    description: "Your Google Gemini API Key"
+    required: true
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+
+  env:
+    GEMINI_API_KEY: ${{ inputs.gemini_api_key }}
