@@ -2,6 +2,7 @@ import os
 import subprocess
 import google.generativeai as genai
 
+# 1. Configure Gemini
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     raise ValueError("GEMINI_API_KEY not found.")
@@ -11,10 +12,16 @@ model = genai.GenerativeModel('gemini-flash-latest')
 
 def get_git_diff():
     """
-    Uses 'git show' to get the changes in the current commit.
-    This works even if there is no previous commit history.
+    Configures git security and runs git show.
     """
     try:
+        # Tell git to trust the GitHub workspace directory despite ownership differences
+        subprocess.run(
+            ["git", "config", "--global", "--add", "safe.directory", "/github/workspace"],
+            check=True
+        )
+        
+        # Now run the actual git show command
         result = subprocess.run(
             ["git", "show", "--format=", "HEAD"], 
             capture_output=True, 
@@ -23,14 +30,14 @@ def get_git_diff():
         )
         return result.stdout
     except subprocess.CalledProcessError as e:
-        print(f"Error running git show: {e}")
+        print(f"Error running git command: {e}")
         return None
 
 def generate_pr_description(diff_text):
     prompt = f"""
     You are a helpful DevOps assistant. 
     Below is a git diff of a code change. 
-    Write a concise PR description.
+    Write a concise PR description in Markdown format.
     
     DIFF:
     {diff_text}
