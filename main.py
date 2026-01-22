@@ -2,7 +2,6 @@ import os
 import subprocess
 import google.generativeai as genai
 
-# 1. Configure Gemini
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     raise ValueError("GEMINI_API_KEY not found.")
@@ -12,26 +11,43 @@ model = genai.GenerativeModel('gemini-flash-latest')
 
 def get_git_diff():
     """
-    Configures git security and runs git show.
+    Smart diff retrieval:
+    1. Tries to get the diff between current and previous commit.
+    2. If that fails (e.g., first commit), falls back to just showing the current commit.
     """
     try:
-        # Tell git to trust the GitHub workspace directory despite ownership differences
         subprocess.run(
             ["git", "config", "--global", "--add", "safe.directory", "/github/workspace"],
             check=True
         )
-        
-        # Now run the actual git show command
+    except subprocess.CalledProcessError as e:
+        print(f"Warning: Failed to set git config safe.directory: {e}")
+
+    # Try diff against previous commit
+    try:
         result = subprocess.run(
-            ["git", "show", "--format=", "HEAD"], 
+            ["git", "diff", "HEAD~1", "HEAD"], 
             capture_output=True, 
             text=True, 
             check=True
         )
         return result.stdout
-    except subprocess.CalledProcessError as e:
-        print(f"Error running git command: {e}")
-        return None
+        
+    except subprocess.CalledProcessError:
+        print("Could not diff against previous commit (likely first commit). Switching to fallback...")
+        
+        # If that fails, show the current commit only (first commit case)
+        try:
+            result = subprocess.run(
+                ["git", "show", "--format=", "HEAD"], 
+                capture_output=True, 
+                text=True, 
+                check=True
+            )
+            return result.stdout
+        except subprocess.CalledProcessError as e:
+            print(f"Error running git show fallback: {e}")
+            return None
 
 def generate_pr_description(diff_text):
     prompt = f"""
