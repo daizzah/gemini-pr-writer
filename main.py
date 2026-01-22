@@ -11,19 +11,19 @@ model = genai.GenerativeModel('gemini-flash-latest')
 
 def get_git_diff():
     """
-    Runs 'git diff' to see changes between the latest commit 
-    and the one before it.
+    Uses 'git show' to get the changes in the current commit.
+    This works even if there is no previous commit history.
     """
     try:
         result = subprocess.run(
-            ["git", "diff", "HEAD~1", "HEAD"], 
+            ["git", "show", "--format=", "HEAD"], 
             capture_output=True, 
             text=True, 
             check=True
         )
         return result.stdout
     except subprocess.CalledProcessError as e:
-        print(f"Error running git diff: {e}")
+        print(f"Error running git show: {e}")
         return None
 
 def generate_pr_description(diff_text):
